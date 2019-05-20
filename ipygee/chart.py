@@ -8,9 +8,8 @@ library because it's the easiest to integrate with ipywidgets
 import pygal
 import base64
 import ee
-from .. import tools, utils
+from geetools import tools, utils
 import pandas as pd
-import datetime
 
 # TODO: make not plotted bands values appear on tooltip
 # TODO: give capability to plot a secondary axis with other data

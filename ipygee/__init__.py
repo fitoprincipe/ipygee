@@ -7,3 +7,4 @@ from ._version import __version__
 from .map import Map
 from .assets import AssetManager
 from .tasks import TaskManager
+from . import chart
