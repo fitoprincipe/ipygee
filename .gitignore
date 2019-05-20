@@ -1,0 +1,17 @@
+# IDEA IDE
+.idea/
+
+# any checkpoint
+**/.ipynb_checkpoints
+
+# Environments
+.env
+
+# Distribution / packaging
+/build
+/dist/
+*.egg-info/
+
+# Unit test / coverage reports
+.cache
+
