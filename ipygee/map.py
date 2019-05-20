@@ -17,6 +17,7 @@ import traceback
 from .maptools import *
 from . import widgets
 from .utils import *
+import re
 
 
 ZOOM_SCALES = {
@@ -132,13 +133,26 @@ class Map(ipyleaflet.Map):
         self.EELayers = copyEELayers
 
     def setDimensions(self, width=None, height=None):
-        """ Set the dimensions for the map
-
-        :param width:
-        :param height:
-        :return:
-        """
-        self.layout = Layout(width=width, height=height)
+        """ Set the dimensions for the map """
+        def check(value, t):
+            if value is None: return value
+            if isinstance(value, (int, float)):
+                return '{}px'.format(value)
+            elif isinstance(value, (str,)):
+                search = re.search('(\d+)', value).groups()
+                intvalue = search[0]
+                splitted = value.split(intvalue)
+                units = splitted[1]
+                if units == '%':
+                    if t == 'width': return '{}%'.format(intvalue)
+                    else: return None
+                else:
+                    return '{}px'.format(intvalue)
+            else:
+                msg = 'parameter {} of setDimensions must be int or str'
+                raise ValueError(msg.format(t))
+        self.layout = Layout(width=check(width, 'width'),
+                             height=check(height, 'height'))
 
     def moveLayer(self, layer_name, direction='up'):
         """ Move one step up a layer """
@@ -205,11 +219,6 @@ class Map(ipyleaflet.Map):
     def addedGeometries(self):
         return sum(
             [1 for val in self.EELayers.values() if val['type'] == 'Geometry'])
-
-    def taskWidget(self):
-        with self.tasksWid:
-            while True:
-                list = ee.data.getTaskList()
 
     def show(self, tabs=True, layer_control=True, draw_control=False,
              fullscreen=True):
