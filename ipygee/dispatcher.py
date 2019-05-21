@@ -1,6 +1,11 @@
 # coding=utf-8
 
-""" Dispatch methods for different EE Object types """
+""" Dispatch methods for different EE Object types
+
+The dispatcher functions must take as single argument the information return
+by ee.ComputedObject.getInfo() and process it
+
+"""
 
 import ee
 from ipywidgets import *
@@ -8,33 +13,50 @@ from . import utils
 from geetools.ui.dispatcher import belongToEE
 
 
+class EEWidget(object):
+    """ A simple class to hold the widget for dispatching and the type
+    retrieved from the server """
+    def __init__(self, widget, server_type, local_type):
+        self.widget = widget
+        self.server_type = server_type
+        self.local_type = local_type
+
+
 # GENERAL DISPATCHER
 def dispatch(eeobject):
     """ General dispatcher """
+    info = eeobject.getInfo()
+    local_type = eeobject.__class__.__name__
+    try:
+        server_type = info.get('type')
+    except AttributeError:
+        server_type = local_type
+
+    # Create Widget
     if belongToEE(eeobject):
         # DISPATCH!!
-        if isinstance(eeobject, (ee.Image,)):
-            return dispatchImage(eeobject)
-        elif isinstance(eeobject, (ee.Date,)):
-            return dispatchDate(eeobject)
-        elif isinstance(eeobject, (ee.DateRange,)):
-            return dispatchDaterange(eeobject)
+        if server_type == 'Image':
+            widget = dispatchImage(info)
+        elif server_type == 'Date':
+            widget = dispatchDate(info)
+        elif server_type == 'DateRange':
+            widget = dispatchDaterange(info)
         # ADD MORE ABOVE ME!
         else:
             info = eeobject.getInfo()
             if isinstance(info, (dict,)):
-                return utils.create_accordion(info)
+                widget = utils.create_accordion(info)
             else:
-                return HTML(str(info)+'<br/>')
+                widget = HTML(str(info)+'<br/>')
     else:
         info = str(eeobject)
-        return Label(info)
+        widget = Label(info)
+
+    return EEWidget(widget, server_type, local_type)
 
 
-def dispatchImage(image):
+def dispatchImage(info):
     """ Dispatch a Widget for an Image Object """
-    info = image.getInfo()
-
     # IMAGE
     image_id = info['id'] if 'id' in info else 'No Image ID'
     prop = info.get('properties')
@@ -101,16 +123,15 @@ def dispatchImage(image):
     return VBox([header, acc])
 
 
-def dispatchDate(date):
+def dispatchDate(info):
     """ Dispatch a ee.Date """
-    info = date.format().getInfo()
     return Label(info)
 
 
-def dispatchDaterange(daterange):
+def dispatchDaterange(info):
     """ Dispatch a DateRange """
-    start = daterange.start().format().getInfo()
-    end = daterange.end().format().getInfo()
-    value = '{} to {}'.format(start, end)
 
+    start = ee.Date(info.get('dates')[0]).format().getInfo()
+    end = ee.Date(info.get('dates')[0]).format().getInfo()
+    value = '{} to {}'.format(start, end)
     return Label(value)

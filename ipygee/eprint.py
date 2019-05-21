@@ -22,7 +22,9 @@ class Eprint(object):
 
         # Output structure
         def structure():
-            return Accordion([Output()])
+            acc = Accordion([Output()])
+            acc.set_title(0, 'Loading...')
+            return acc
 
         # VERTICAL GRID WIDGET TO OUTPUT RESULTS
         # infowin = VBox([Output()]*len(args))
@@ -36,18 +38,25 @@ class Eprint(object):
         infowin = VBox(vbox_arg)
 
         # HELPER
-        def setchildren(vbox, i, val, otype):
+        def setchildren(vbox, i, val, local_type, server_type):
             children = list(vbox.children)
             wid = children[i]
             if isinstance(wid, (Accordion,)):
-                wid.set_title(0, otype)
+                if local_type != server_type:
+                    title = '{} (local) / {} (server)'.format(local_type,
+                                                              server_type)
+                else:
+                    title = server_type
+                wid.set_title(0, title)
                 wid.children = [val]
                 wid.selected_index = None if size > 1 else 0
 
         def get_info(eeobject, index):
             """ Get Info """
-            widget = dispatcher.dispatch(eeobject)
-            setchildren(infowin, index, widget, eeobject.__class__.__name__)
+            eewidget = dispatcher.dispatch(eeobject)
+            widget = eewidget.widget
+            setchildren(infowin, index, widget, eewidget.local_type,
+                        eewidget.server_type)
 
         for i, eeobject in enumerate(args):
             # DO THE SAME FOR EVERY OBJECT
