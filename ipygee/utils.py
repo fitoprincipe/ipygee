@@ -3,7 +3,7 @@
 """ Util functions """
 
 from ipywidgets import *
-from .dispatcher import widgetDispatcher
+from .dispatcher import dispatch
 import datetime
 
 
@@ -68,7 +68,7 @@ def create_object_output(object):
     ty = object.__class__.__name__
 
     if ty == 'Image':
-        return widgetDispatcher(object)
+        return dispatch(object)
     elif ty == 'FeatureCollection':
         try:
             info = object.getInfo()
