@@ -484,7 +484,7 @@ class Map(ipyleaflet.Map):
 
     def addImageCollection(self, collection, visParams=None,
                            namePattern='{id}', show=False, opacity=None,
-                           datePattern='yyyyMMdd'):
+                           datePattern='yyyyMMdd', replace=True):
         """ Add every Image of an ImageCollection to the Map
 
         :param collection: the ImageCollection
@@ -503,7 +503,8 @@ class Map(ipyleaflet.Map):
             try:
                 img = ee.Image(collist.get(n))
                 name = utils.makeName(img, namePattern, datePattern)
-                self.addLayer(img, visParams, str(name), show, opacity)
+                self.addLayer(img, visParams, str(name), show, opacity,
+                              replace=replace)
                 n += 1
             except:
                 break
