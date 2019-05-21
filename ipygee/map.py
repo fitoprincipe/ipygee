@@ -282,10 +282,7 @@ class Map(ipyleaflet.Map):
         # Check if layer exists
         if name in self.EELayers.keys():
             if not replace:
-                msg = "Image with name '{}' exists already, please choose " \
-                      "another name"
-                print(msg.format(name))
-                return
+                return self.getLayer(name)
             else:
                 # Get URL, attribution & vis params
                 params = getImageTile(image, visParams, show, opacity)
@@ -522,6 +519,9 @@ class Map(ipyleaflet.Map):
         For ee.Image and ee.ImageCollection see `addImage`
         for ee.Geometry and ee.Feature see `addGeometry`
         """
+        if name in self.EELayers.keys():
+            return None
+
         visParams = visParams if visParams else {}
 
         # CASE: ee.Image
