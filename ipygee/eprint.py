@@ -6,6 +6,9 @@ from ipywidgets import *
 from IPython.display import display
 from . import dispatcher, threading
 from geetools.ui.dispatcher import belongToEE
+from .widgets import ErrorAccordion
+import traceback
+import sys
 
 
 class Eprint(object):
@@ -53,10 +56,20 @@ class Eprint(object):
 
         def get_info(eeobject, index):
             """ Get Info """
-            eewidget = dispatcher.dispatch(eeobject)
-            widget = eewidget.widget
-            setchildren(infowin, index, widget, eewidget.local_type,
-                        eewidget.server_type)
+            try:
+                eewidget = dispatcher.dispatch(eeobject)
+                widget = eewidget.widget
+                local_type = eewidget.local_type
+                server_type = eewidget.server_type
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                trace = traceback.format_exception(exc_type, exc_value,
+                                                   exc_traceback)
+                widget = ErrorAccordion(e, trace)
+                local_type = 'ERROR'
+                server_type = 'ERROR'
+
+            setchildren(infowin, index, widget, local_type, server_type)
 
         for i, eeobject in enumerate(args):
             # DO THE SAME FOR EVERY OBJECT

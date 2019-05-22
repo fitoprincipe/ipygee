@@ -4,7 +4,7 @@
 
 import ee
 import ipyleaflet
-from ipywidgets import *
+from ipywidgets import Layout, HTML, Accordion
 from traitlets import *
 from collections import OrderedDict
 from .tasks import TaskManager
@@ -15,7 +15,7 @@ from .tabs.layers import LayersWidget
 from copy import copy
 import traceback
 from .maptools import *
-from . import widgets
+from .widgets import ErrorAccordion
 from .utils import *
 import re
 
@@ -473,11 +473,11 @@ class Map(ipyleaflet.Map):
         proxy = ee.ImageCollection(collection).sort('system:time_start')
         mosaic = ee.Image(proxy.mosaic())
 
-        EELayer = self.addImage(mosaic, visParams, name, show, opacity, replace)
+        self.addImage(mosaic, visParams, name, show, opacity, replace)
         # modify EELayer
-        EELayer['type'] = 'ImageCollection'
-        EELayer['object'] = ee.ImageCollection(collection)
-        return EELayer
+        # EELayer['type'] = 'ImageCollection'
+        # EELayer['object'] = ee.ImageCollection(collection)
+        # return EELayer
 
     def addImageCollection(self, collection, visParams=None,
                            namePattern='{id}', show=False, opacity=None,
@@ -812,7 +812,7 @@ class Map(ipyleaflet.Map):
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         trace = traceback.format_exception(exc_type, exc_value,
                                                            exc_traceback)
-                        wid = widgets.ErrorAccordion(e, trace)
+                        wid = ErrorAccordion(e, trace)
                         wids4acc.append(wid)
                         namelist.append('ERROR at layer {}'.format(name))
 
@@ -857,7 +857,7 @@ class Map(ipyleaflet.Map):
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         trace = traceback.format_exception(exc_type, exc_value,
                                                            exc_traceback)
-                        wid = widgets.ErrorAccordion(e, trace)
+                        wid = ErrorAccordion(e, trace)
                         wids4acc.append(wid)
                         namelist.append('ERROR at layer {}'.format(name))
 
@@ -877,7 +877,7 @@ class Map(ipyleaflet.Map):
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         trace = traceback.format_exception(exc_type, exc_value,
                                                            exc_traceback)
-                        wid = widgets.ErrorAccordion(e, trace)
+                        wid = ErrorAccordion(e, trace)
                         wids4acc.append(wid)
                         namelist.append('ERROR at layer {}'.format(name))
 
