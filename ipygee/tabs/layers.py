@@ -97,7 +97,6 @@ class LayersWidget(RealBox):
         if self.EELayer:
             loading = HTML('Loading <b>{}</b>...'.format(self.layer.name))
             widget = VBox([loading])
-            # widget = ipytools.create_object_output(self.obj)
             thread = Thread(target=utils.create_async_output,
                             args=(self.obj, widget))
             self.items = [[self.selector, self.group1],

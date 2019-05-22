@@ -125,7 +125,8 @@ def dispatchImage(info):
 
 def dispatchDate(info):
     """ Dispatch a ee.Date """
-    return Label(info)
+    date = ee.Date(info.get('value'))
+    return Label(date.format().getInfo())
 
 
 def dispatchDaterange(info):

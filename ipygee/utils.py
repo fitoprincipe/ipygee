@@ -68,7 +68,7 @@ def create_object_output(object):
     ty = object.__class__.__name__
 
     if ty == 'Image':
-        return dispatch(object)
+        return dispatch(object).widget
     elif ty == 'FeatureCollection':
         try:
             info = object.getInfo()
