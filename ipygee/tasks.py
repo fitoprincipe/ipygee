@@ -29,7 +29,7 @@ def formatter(task):
     # ELLAPSED
     if creation:
         delta_ellapsed = now_dt - utils.get_datetime(creation)
-        ellapsed = utils.format_ellapsed(delta_ellapsed.total_seconds())
+        ellapsed = utils.format_elapsed(delta_ellapsed.total_seconds())
     else:
         ellapsed = ''
 
@@ -44,7 +44,7 @@ def formatter(task):
         start_dt = utils.get_datetime(start)
         start_str = utils.format_timestamp(start)
         running_td = now_dt - start_dt
-        running_str = utils.format_ellapsed(running_td.total_seconds())
+        running_str = utils.format_elapsed(running_td.total_seconds())
         html_str = """
         <strong>created on:</strong> {creation}</br>
         <strong>started running on:</strong> {start}</br>
@@ -66,7 +66,7 @@ def formatter(task):
         finish_str = utils.format_timestamp(finish)
 
         running_td = finish_dt - start_dt
-        running_str = utils.format_ellapsed(running_td.total_seconds())
+        running_str = utils.format_elapsed(running_td.total_seconds())
 
         html_str = """
         <strong>created on:</strong> {creation}</br>
@@ -85,7 +85,7 @@ def formatter(task):
         cancelled_dt = utils.get_datetime(cancelled_ts)
         cancelled_str = utils.format_timestamp(cancelled_ts)
         active_td = cancelled_dt - created_dt
-        active_str = utils.format_ellapsed(active_td.total_seconds())
+        active_str = utils.format_elapsed(active_td.total_seconds())
 
         html_str = """
         <strong>created on:</strong> {creation}</br>
