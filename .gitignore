@@ -16,4 +16,5 @@
 .cache
 
 # Cache
-__pycache__/
+ipygee/__pycache__/
+ipygee/tabs/__pycache__/
