@@ -8,6 +8,4 @@ from .map import Map
 from .assets import AssetManager
 from .tasks import TaskManager
 from . import chart
-from .eprint import Eprint
-
-eprint = Eprint()
+from .eprint import eprint, eprint_async

@@ -3,84 +3,58 @@
 """ Print a EE Object in the Jupyter environment """
 
 from ipywidgets import *
-from IPython.display import display
-from . import dispatcher, threading, utils
-from geetools.ui.dispatcher import belongToEE
-from .widgets import ErrorAccordion
-import traceback
-import sys
-from time import time
+from . import dispatcher, threading
+
+CONFIG = {'do_async': True}
 
 
-class Eprint(object):
-    """ Print EE Objects. Similar to `print(object.getInfo())` but with
-    some magic (lol)
+def worker(obj, container):
+    """ The worker to work in a Thread or not """
+    eewidget = dispatcher.dispatch(obj)
+    dispatcher.set_container(container, eewidget)
+
+
+def process_object(obj, do_async):
+    """ Process one object for printing """
+    if isinstance(obj, (str, int, float)):
+        return Label(str(obj))
+    else:
+        if do_async:
+            container, button = dispatcher.create_container(True)
+            thread = threading.Thread(target=worker, args=(obj, container))
+            button.on_click(lambda but: dispatcher.cancel(thread, container))
+            thread.start()
+        else:
+            container, _ = dispatcher.create_container(False)
+            worker(obj, container)
+        return container
+
+
+def eprint(*objs, do_async=None, container=None):
+    """ Print EE Objects. Similar to `print(object.getInfo())` but returns a
+    widget for Jupyter notebooks
 
     :param eeobject: object to print
     :type eeobject: ee.ComputedObject
+    :param container: any container widget
+        (see https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20List.html#Container/Layout-widgets)
+    :type container: ipywidget.Widget
     """
-    ASYNC = True
+    if do_async is None:
+        do_async = CONFIG.get('do_async')
 
-    def __call__(self, *args):
-        size = len(args)
+    if container is None:
+        container = VBox()
 
-        # Output structure
-        def structure():
-            acc = Accordion([Output()])
-            acc.set_title(0, 'Loading...')
-            return acc
+    children = []
+    for obj in objs:
+        widget = process_object(obj, do_async)
+        children.append(widget)
+        container.children = children
 
-        # VERTICAL GRID WIDGET TO OUTPUT RESULTS
-        vbox_arg = []
-        for arg in args:
-            if belongToEE(arg):
-                vbox_arg.append(structure())
-            else:
-                vbox_arg.append(Label(str(arg)))
-        infowin = VBox(vbox_arg)
+    return container
 
-        # HELPER
-        def setchildren(vbox, i, val, local_type, server_type, dt):
-            children = list(vbox.children)
-            wid = children[i]
-            ellapsed = utils.format_elapsed(dt)
-            if isinstance(wid, (Accordion,)):
-                if local_type != server_type:
-                    title = '{} (local) / {} (server) [{}]'.format(
-                        local_type, server_type, ellapsed)
-                else:
-                    title = '{} [{}]'.format(server_type, ellapsed)
 
-                wid.set_title(0, title)
-                wid.children = [val]
-                wid.selected_index = None if size > 1 else 0
-
-        def get_info(eeobject, index):
-            """ Get Info """
-            start = time()
-            try:
-                eewidget = dispatcher.dispatch(eeobject)
-                widget = eewidget.widget
-                local_type = eewidget.local_type
-                server_type = eewidget.server_type
-            except Exception as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                trace = traceback.format_exception(exc_type, exc_value,
-                                                   exc_traceback)
-                widget = ErrorAccordion(e, trace)
-                local_type = 'ERROR'
-                server_type = 'ERROR'
-            end = time()
-            dt = end-start
-            setchildren(infowin, index, widget, local_type, server_type, dt)
-
-        for i, eeobject in enumerate(args):
-            # DO THE SAME FOR EVERY OBJECT
-            if self.ASYNC:
-                thread = threading.Thread(target=get_info,
-                                          args=(eeobject, i))
-                thread.start()
-            else:
-                get_info(eeobject, i)
-
-        display(infowin)
+def eprint_async(do_async):
+    """ Set the global async for eprint """
+    CONFIG['do_async'] = do_async
