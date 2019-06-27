@@ -8,4 +8,4 @@ from .map import Map
 from .assets import AssetManager
 from .tasks import TaskManager
 from . import chart
-from .eprint import eprint, eprint_async
+from .eprint import eprint, set_eprint_async, getInfo

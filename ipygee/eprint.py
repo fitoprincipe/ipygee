@@ -4,6 +4,7 @@
 
 from ipywidgets import *
 from . import dispatcher, threading
+from IPython.display import display
 
 CONFIG = {'do_async': True}
 
@@ -30,6 +31,14 @@ def process_object(obj, do_async):
         return container
 
 
+def getInfo(obj, do_async=None):
+    """ Get Information Widget for the parsed EE object """
+    if do_async is None:
+        do_async = CONFIG.get('do_async')
+
+    return process_object(obj, do_async)
+
+
 def eprint(*objs, do_async=None, container=None):
     """ Print EE Objects. Similar to `print(object.getInfo())` but returns a
     widget for Jupyter notebooks
@@ -40,21 +49,18 @@ def eprint(*objs, do_async=None, container=None):
         (see https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20List.html#Container/Layout-widgets)
     :type container: ipywidget.Widget
     """
-    if do_async is None:
-        do_async = CONFIG.get('do_async')
-
     if container is None:
         container = VBox()
 
     children = []
     for obj in objs:
-        widget = process_object(obj, do_async)
+        widget = getInfo(obj, do_async)
         children.append(widget)
         container.children = children
 
-    return container
+    display(container)
 
 
-def eprint_async(do_async):
+def set_eprint_async(do_async):
     """ Set the global async for eprint """
     CONFIG['do_async'] = do_async
