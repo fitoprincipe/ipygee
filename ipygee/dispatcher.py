@@ -14,8 +14,43 @@ from time import time
 import sys
 import traceback
 from .widgets import ErrorAccordion
+from datetime import datetime
 
 DISPATCHERS = dict()
+
+
+# HELPERS
+def order(d):
+    """ Order a dict and return a list of [key, val] """
+    results = []
+    if isinstance(d, dict):
+        keys = list(d.keys())
+        keys.sort()
+        for k in keys:
+            results.append([str(k), d[k]])
+    else:
+        for i, val in enumerate(d):
+            results.append([str(i), val])
+    return results
+
+
+def isurl(value):
+    """ Determine if the parsed string is a url """
+    url = False
+    if isinstance(value, str):
+        if value[:4] == 'http' or value[:3] == 'www':
+            url = True
+    return url
+
+
+def new_line(val, n):
+    newval = ''
+    for i, v in enumerate(val):
+        if i%n == 0 and i != 0:
+            newval += '</br>'+v
+        else:
+            newval += v
+    return newval
 
 
 def create_container(thread=False):
@@ -130,37 +165,62 @@ def dispatch(obj):
     return EEWidget(widget, obj_type, local_type, dt)
 
 
-@register('list', 'List')
-def eelist(info):
-    widget = VBox()
-    elements = []
-    for i in info:
-        container, _ = create_container()
-        eewidget = dispatch(i)
-        set_container(container, eewidget)
-        elements.append(container)
-    widget.children = elements
+@register('str', 'String')
+def string(info):
+    """ Dispatch Strings """
+    # info = new_line(info, 100)
+
+    if isurl(info):
+        if info[:3] == 'www':
+            html = "<a href=http://{} target='_blank'>{}</a>"
+        else:
+            html = "<a href={} target='_blank'>{}</a>"
+        widget = HTML(html.format(info, info))
+    else:
+        html = "{}"
+        widget = HTML(html.format(info))
+
     return widget
 
 
-@register('Dictionary', 'dict')
-def dictionary(info):
-    """ Dispatch Dictionaries """
-    widget = Accordion()
+@register('int', 'float', 'Number')
+def number(info):
+    """ Dispatch Numbers """
+    return HTML(str(info))
+
+
+@register('Dictionary', 'dict', 'List', 'list', 'tuple')
+def iterable(info):
+    """ Dispatch Iterables (list and dict) """
+    widget = VBox()
     elements = []
-    for key, val in info.items():
+
+    info = order(info)
+
+    for key, val in info:
         if isinstance(val, (str, int, float)):
-            container = Label(str(val))
+            try:
+                length = len(val)
+            except:
+                length = 1
+
+            if length < 500:
+                html = '<div style="border:solid 1px; padding-left:5px;"><strong>{}:</strong> {}</div>'
+                container = HTML(html.format(key, dispatch(val).widget.value))
+            else:
+                container = dispatch(val).widget
+                container = Accordion([container])
+                container.set_title(0, key)
+                container.selected_index = None
         else:
             container, _ = create_container()
             eewidget = dispatch(val)
             set_container(container, eewidget)
+            container = Accordion([container])
+            container.set_title(0, key)
+            container.selected_index = None
         elements.append(container)
     widget.children = elements
-
-    # Set titles from keys
-    for i, key in enumerate(info.keys()):
-        widget.set_title(i, key)
 
     return widget
 
@@ -215,11 +275,7 @@ def image(info):
 
     # PROPERTIES
     if prop:
-        new_properties = []
-        for key, val in prop.items():
-            value = '<li><b>{}</b>: {}</li>'.format(key, val)
-            new_properties.append(value)
-        prop_wid = HTML('<ul>'+''.join(new_properties)+'</ul>')
+        prop_wid = dispatch(prop).widget
     else:
         prop_wid = HTML('Image has no properties')
 
@@ -244,9 +300,9 @@ def date(info):
 @register('DateRange')
 def daterange(info):
     """ Dispatch a DateRange """
-
-    start = ee.Date(info.get('dates')[0]).format().getInfo()
-    end = ee.Date(info.get('dates')[0]).format().getInfo()
+    dates = info['dates']
+    start = datetime.utcfromtimestamp(dates[0]/1000).isoformat()
+    end = datetime.utcfromtimestamp(dates[1]/1000).isoformat()
     value = '{} to {}'.format(start, end)
     return Label(value)
 
@@ -257,42 +313,106 @@ def geometry(info):
     """ Dispatch a ee.Geometry """
     coords = info.get('coordinates')
     typee = info.get('type')
-    acc = Accordion()
+    widget = Accordion()
 
     if typee in ['MultiPoint', 'MultiPolygon', 'MultiLineString']:
         inner_children = []
         for coord in coords:
             inner_children.append(Label(str(coord)))
         inner_acc = Accordion(inner_children)
-        inner_acc.selected_index = None # thisp will unselect all
+        inner_acc.selected_index = None # this will unselect all
         for i, _ in enumerate(coords):
             inner_acc.set_title(i, str(i))
         children = [inner_acc]
     else:
         children = [Label(str(coords))]
 
-    acc.children = children
-    acc.set_title(0, 'coordinates')
-    return acc
+    widget.children = children
+    widget.set_title(0, 'coordinates')
+    widget.selected_index = None
+    return widget
 
 
 @register('Feature')
 def feature(info):
     """ Dispatch a ee.Feature """
     geom = info.get('geometry')
+    geomtype = geom.get('type')
     props = info.get('properties')
 
     # Contruct an accordion with the geometries
     acc = geometry(geom)
     children = list(acc.children)
 
-    # dispatch properties
-    prop_acc = dispatch(props).widget
+    # Properties
+    if props:
+        # dispatch properties
+        prop_acc = dispatch(props)
+    else:
+        prop_acc = dispatch('Feature has no properties')
 
     # Append properties as a child
-    children.append(prop_acc)
+    children.append(prop_acc.widget)
     acc.set_title(1, 'properties')
     acc.children = children
+    acc.selected_index = None
+
+    # Geometry Type
+    typewid = dispatch(geomtype)
+
 
     return acc
 
+
+@register('FeatureCollection', 'ImageCollection')
+def collection(info):
+    """ Dispatch a Collection """
+    try:
+        fcid = info['id']
+    except KeyError:
+        try:
+            fcid = info['properties']['system:index']
+        except:
+            fcid = None
+
+    idlabel = HTML('<strong>Collection ID:</strong> {}'.format(fcid))
+
+    # dispatch properties
+    props = info.get('properties')
+    if props:
+        properties = dispatch(info['properties']) # acc
+    else:
+        properties = dispatch('{} has no properties'.format(info.get('type')))
+    properties_acc = Accordion([properties.widget])
+    properties_acc.set_title(0, 'Properties')
+    properties_acc.selected_index = None
+
+    # Features
+    features = info['features']
+
+    features_children = []
+    for i, feat in enumerate(features):
+        featacc = dispatch(feat).widget
+        acc = Accordion([featacc])
+        acc.set_title(0, str(i))
+        acc.selected_index = None
+        features_children.append(acc)
+
+    features_wid = VBox(features_children)
+    features_acc = Accordion([features_wid])
+    title = 'Features' if info['type'] == 'FeatureCollection' else 'Images'
+    features_acc.set_title(0, title)
+    features_acc.selected_index = None
+
+    if info['type'] == 'FeatureCollection':
+        # columns
+        columns = dispatch(info['columns']).widget # acc
+        columns_acc = Accordion([columns])
+        columns_acc.set_title(0, 'Columns')
+        columns_acc.selected_index = None
+
+        widgets = [idlabel, columns_acc, properties_acc, features_acc]
+    else:
+        widgets = [idlabel, properties_acc, features_acc]
+
+    return VBox(widgets)
