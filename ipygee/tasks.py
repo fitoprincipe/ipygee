@@ -131,7 +131,8 @@ class TaskManager(VBox):
             2: 'COMPLETED',
             3: 'FAILED',
             4: 'CANCELLED',
-            5: 'UNKNOWN'
+            5: 'UNKNOWN',
+            6: 'CANCEL_REQUESTED'
         }
 
         self.taskVBox = VBox()
@@ -142,13 +143,15 @@ class TaskManager(VBox):
         self.canceledVBox = VBox()
         self.unknownVBox = VBox()
         self.readyVBox = VBox()
+        self.cancelRequestedVBox = VBox()
 
         self.tab_widgets_rel = {'RUNNING': self.runningVBox,
                                 'COMPLETED': self.completedVBox,
                                 'FAILED': self.failedVBox,
                                 'CANCELLED': self.canceledVBox,
                                 'READY': self.readyVBox,
-                                'UNKNOWN': self.unknownVBox}
+                                'UNKNOWN': self.unknownVBox,
+                                'CANCEL_REQUESTED': self.cancelRequestedVBox}
 
         # Create Tabs
         self.tab_widgets = []
@@ -208,9 +211,12 @@ class TaskManager(VBox):
             canceled_list = []
             unknown_list = []
             ready_list = []
+            canceled_request_list = []
             all_list = {'RUNNING': running_list, 'COMPLETED': completed_list,
                         'FAILED': failed_list, 'CANCELLED': canceled_list,
-                        'READY': ready_list, 'UNKNOWN': unknown_list}
+                        'READY': ready_list, 'UNKNOWN': unknown_list,
+                        'CANCEL_REQUESTED': canceled_request_list}
+
             for task in tasklist:
                 state = task['state']
                 description = task['description']
