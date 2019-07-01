@@ -83,7 +83,7 @@ class AssetManager(VBox):
             if selected:
                 assets = [ass for ass in selected.keys()]
                 for assetid in assets:
-                    thread = Thread(target=batch.recrusiveDeleteAsset,
+                    thread = Thread(target=batch.utils.recrusiveDeleteAsset,
                                     args=(assetid,))
                     thread.start()
 
