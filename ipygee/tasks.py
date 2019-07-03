@@ -74,12 +74,32 @@ def formatter(task):
         <strong>finished running on:</strong> {finish}</br>
         <strong>ellapsed since creation:</strong> {ellapsed}</br>
         <strong>running:</strong> {running}</br>
-        <strong>URL:</strong> {url}
+        <strong>URL:</strong> <a href={url} target='_blank'>{url}</a>
         """.format(url=url, creation=created_str, ellapsed=ellapsed,
                    running=running_str, start=start_str, finish=finish_str)
         widget = HTML(html_str)
     elif state == 'FAILED':
-        widget = utils.create_accordion(task)
+        start = task.get('start_timestamp_ms')
+        start_dt = utils.get_datetime(start)
+        start_str = utils.format_timestamp(start)
+
+        finish = task.get('update_timestamp_ms')
+        finish_dt = utils.get_datetime(finish)
+        finish_str = utils.format_timestamp(finish)
+
+        running_td = finish_dt - start_dt
+        running_str = utils.format_elapsed(running_td.total_seconds())
+
+        html_str = """
+        <strong>created on:</strong> {creation}</br>
+        <strong>started running on:</strong> {start}</br>
+        <strong>failed on:</strong> {finish}</br>
+        <strong>ellapsed since creation:</strong> {ellapsed}</br>
+        <strong>running:</strong> {running}</br>
+        """.format(creation=created_str, ellapsed=ellapsed,
+                   running=running_str, start=start_str, finish=finish_str)
+        widget = HTML(html_str)
+
     elif state == 'CANCELLED':
         cancelled_ts = task.get('update_timestamp_ms')
         cancelled_dt = utils.get_datetime(cancelled_ts)
@@ -90,7 +110,7 @@ def formatter(task):
         html_str = """
         <strong>created on:</strong> {creation}</br>
         <strong>cancelled on:</strong> {cancel}</br>
-        <strong>active for:</strong> {active}</br>
+        <strong>running:</strong> {active}</br>
         <strong>ellapsed since creation:</strong> {ellapsed}</br>
         """.format(creation=created_str, ellapsed=ellapsed,
                    cancel=cancelled_str, active=active_str)
@@ -238,6 +258,7 @@ class TaskManager(VBox):
             self.canceledVBox.children = tuple(canceled_list)
             self.unknownVBox.children = tuple(unknown_list)
             self.readyVBox.children = tuple(ready_list)
+            self.cancelRequestedVBox.children = tuple(canceled_request_list)
         except Exception as e:
             self.selected_tab().children = (HTML(str(e)),)
 
