@@ -41,20 +41,20 @@ def format_timestamp(timestamp):
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 
-def format_elapsed(secods):
-    if secods < 60:
-        return '{}s'.format(int(secods))
-    elif secods < 3600:
-        minutes = secods/60
+def format_elapsed(seconds):
+    if seconds < 60:
+        return '{}s'.format(int(seconds))
+    elif seconds < 3600:
+        minutes = seconds/60
         seconds = (minutes-int(minutes))*60
         return '{}m {}s'.format(int(minutes), int(seconds))
-    elif secods < 86400:
-        hours = secods/3600
+    elif seconds < 86400:
+        hours = seconds/3600
         minutes = (hours-int(hours))*60
         seconds = (minutes-int(minutes))*60
         return '{}h {}m {}s'.format(int(hours), int(minutes), int(seconds))
     else:
-        days = secods/86400
+        days = seconds/86400
         hours = (days-int(days))*60
         minutes = (hours-int(hours))*60
         seconds = (minutes-int(minutes))*60
