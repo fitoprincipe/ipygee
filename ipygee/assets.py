@@ -8,6 +8,7 @@ from .threading import Thread
 from geetools import batch
 from .widgets import *
 from . import utils
+from . import dispatcher
 
 
 class AssetManager(VBox):
@@ -24,6 +25,7 @@ class AssetManager(VBox):
         self.map = map
 
         # Header
+        self.user_label = HTML('<strong>User:</strong> {}'.format(self.root_path))
         self.reload_button = Button(description='Reload')
         self.add2map = Button(description='Add to Map')
         self.delete = Button(description='Delete Selected')
@@ -68,7 +70,7 @@ class AssetManager(VBox):
         self.root_acc = self.core(self.root_path)
 
         # Set VBox children
-        self.children = [self.header, self.root_acc]
+        self.children = [self.user_label, self.header, self.root_acc]
 
     def delete_selected(self, button=None):
         """ function to delete selected assets """
@@ -173,8 +175,6 @@ class AssetManager(VBox):
         # self.widgets = widgets
         asset_acc = CheckAccordion(widgets=widgets)
 
-        # TODO: set handler for title's checkbox: select all checkboxes (DONE)
-
         # set titles
         for i, (title, ty) in enumerate(zip(ids, types)):
             final_title = '{title} ({type})'.format(title=title, type=ty)
@@ -187,20 +187,13 @@ class AssetManager(VBox):
             if ty == 'Folder' or ty == 'ImageCollection':
                 wid = self.core(path)
             else:
-                image = ee.Image(path)
+                if ty == 'Image':
+                    obj = ee.Image(path)
+                else:
+                    obj = ee.FeatureCollection(path)
+
                 try:
-                    info = image.getInfo()
-                    width = int(info['bands'][0]['dimensions'][0])
-                    height = int(info['bands'][0]['dimensions'][1])
-
-                    new_width = int(self.thumb_height/height*width)
-
-                    thumb = image.getThumbURL({'dimensions':[new_width,
-                                                             self.thumb_height]})
-                    # wid = ImageWid(value=thumb)
-                    wid_i = HTML('<img src={}>'.format(thumb))
-                    wid_info = utils.create_accordion(info)
-                    wid = HBox(children=[wid_i, wid_info])
+                    wid = dispatcher.dispatch(obj).widget
                 except Exception as e:
                     message = str(e)
                     wid = HTML(message)
