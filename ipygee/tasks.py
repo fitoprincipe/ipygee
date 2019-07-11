@@ -77,7 +77,17 @@ def formatter(task):
         <strong>URL:</strong> <a href={url} target='_blank'>{url}</a>
         """.format(url=url, creation=created_str, ellapsed=ellapsed,
                    running=running_str, start=start_str, finish=finish_str)
+
+        try:
+            asset = url.split('?')[1].split('=')[1]
+            html_str = """
+            {}</br>
+            <strong>AssetId:</strong> {}
+            """.format(html_str, asset)
+        except:
+            pass
         widget = HTML(html_str)
+
     elif state == 'FAILED':
         start = task.get('start_timestamp_ms')
         start_dt = utils.get_datetime(start)
@@ -90,14 +100,18 @@ def formatter(task):
         running_td = finish_dt - start_dt
         running_str = utils.format_elapsed(running_td.total_seconds())
 
+        error = task.get('error_message')
+
         html_str = """
         <strong>created on:</strong> {creation}</br>
         <strong>started running on:</strong> {start}</br>
         <strong>failed on:</strong> {finish}</br>
         <strong>ellapsed since creation:</strong> {ellapsed}</br>
         <strong>running:</strong> {running}</br>
+        <strong>error:</strong> {error}
         """.format(creation=created_str, ellapsed=ellapsed,
-                   running=running_str, start=start_str, finish=finish_str)
+                   running=running_str, start=start_str, finish=finish_str,
+                   error=error)
         widget = HTML(html_str)
 
     elif state == 'CANCELLED':
