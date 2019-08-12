@@ -564,6 +564,7 @@ class Map(ipyleaflet.Map):
             print('Layer {} is not present in the map'.format(name))
             return
 
+    # GETTERS
     def getLayer(self, name):
         """ Get a layer by its name
 
@@ -595,29 +596,11 @@ class Map(ipyleaflet.Map):
         vis = self.getLayer(name)['visParams']
         return vis
 
-    def centerObject(self, eeObject, zoom=None, method=1):
-        """ Center an eeObject
-
-        :param eeObject:
-        :param zoom:
-        :param method: experimetal methods to estimate zoom for fitting bounds
-            Currently: 1 or 2
-        :type: int
-        """
-        bounds = getBounds(eeObject)
-        if bounds:
-            try:
-                inverse = inverseCoordinates(bounds)
-                centroid = ee.Geometry.Polygon(inverse) \
-                    .centroid().getInfo()['coordinates']
-            except:
-                centroid = [0, 0]
-
-            self.center = inverseCoordinates(centroid)
-            if zoom:
-                self.zoom = zoom
-            else:
-                self.zoom = getZoom(bounds, method)
+    def getLayerURL(self, name):
+        """ Get the layer URL by name """
+        layer = self.getLayer(name)
+        tile = layer['layer']
+        return tile.url
 
     def getCenter(self):
         """ Returns the coordinates at the center of the map.
@@ -646,6 +629,30 @@ class Map(ipyleaflet.Map):
             return ee.Geometry.Rectangle(bounds)
         else:
             return bounds
+
+    def centerObject(self, eeObject, zoom=None, method=1):
+        """ Center an eeObject
+
+        :param eeObject:
+        :param zoom:
+        :param method: experimetal methods to estimate zoom for fitting bounds
+            Currently: 1 or 2
+        :type: int
+        """
+        bounds = getBounds(eeObject)
+        if bounds:
+            try:
+                inverse = inverseCoordinates(bounds)
+                centroid = ee.Geometry.Polygon(inverse) \
+                    .centroid().getInfo()['coordinates']
+            except:
+                centroid = [0, 0]
+
+            self.center = inverseCoordinates(centroid)
+            if zoom:
+                self.zoom = zoom
+            else:
+                self.zoom = getZoom(bounds, method)
 
     def _update_tab_children(self):
         """ Update Tab children from tab_children_dict """
