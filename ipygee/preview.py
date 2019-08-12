@@ -13,7 +13,7 @@ from . import utils
 CONFIG = {'do_async': True}
 
 
-def image(image, region=None, name=None, visualization=None,
+def image(image, region=None, visualization=None, name=None,
           dimensions=(500, 500), do_async=None):
     """ Preview an Earth Engine Image """
     if do_async is None:
