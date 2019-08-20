@@ -713,6 +713,13 @@ class Map(ipyleaflet.Map):
         else:
             print('Tab {} already exists, please choose another name'.format(name))
 
+    def removeTab(self, name):
+        """ Remove a tab by its name """
+        children = self.tab_children_dict.keys()
+        if name in children:
+            self.tab_children_dict.pop(name)
+        self._update_tab_children()
+
     def handle_change_tab(self, change):
         """ Handle function to trigger when tab changes """
         # Remove all handlers
