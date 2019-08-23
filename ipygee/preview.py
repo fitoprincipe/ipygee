@@ -34,7 +34,10 @@ def image(image, region=None, visualization=None, name=None,
     wid.set_title(0, loading)
 
     def compute(image, region, visualization):
-        region = tools.geometry.getRegion(region)
+        if not region:
+            region = tools.geometry.getRegion(image)
+        else:
+            region = tools.geometry.getRegion(region)
         params = dict(dimensions=formatdimension, region=region)
         if visualization:
             params.update(visualization)
