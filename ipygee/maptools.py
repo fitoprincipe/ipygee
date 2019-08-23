@@ -115,13 +115,13 @@ def inverseCoordinates(coords):
 
 
 def visparamsStrToList(params):
-    ''' Transform a string formated as needed by ee.data.getMapId to a list
+    """ Transform a string formated as needed by ee.data.getMapId to a list
 
     :param params: params to convert
     :type params: str
     :return: a list with the params
     :rtype: list
-    '''
+    """
     proxy_bands = []
     bands = params.split(',')
     for band in bands:
@@ -130,14 +130,14 @@ def visparamsStrToList(params):
 
 
 def visparamsListToStr(params):
-    ''' Transform a list to a string formated as needed by
+    """ Transform a list to a string formated as needed by
         ee.data.getMapId
 
     :param params: params to convert
     :type params: list
     :return: a string formated as needed by ee.data.getMapId
     :rtype: str
-    '''
+    """
     n = len(params)
     if n == 1:
         newbands = '{}'.format(params[0])
@@ -246,13 +246,20 @@ def getImageTile(image, visParams, show=True, opacity=None,
 
 
 def featurePropertiesOutput(feat):
-    ''' generates a string for features properties '''
+    """ generates a string for features properties """
     info = feat.getInfo()
     properties = info['properties']
-    theid = info['id']
-    stdout = '<h3>ID {}</h3></br>'.format(theid)
-    for prop, value in properties.items():
-        stdout += '<b>{}</b>: {}</br>'.format(prop, value)
+    theid = info.get('id')
+    if theid:
+        stdout = '<h3>ID {}</h3></br>'.format(theid)
+    else:
+        stdout = '<h3>Feature has no ID</h3></br>'
+
+    if properties:
+        for prop, value in properties.items():
+            stdout += '<b>{}</b>: {}</br>'.format(prop, value)
+    else:
+        stdout += '<b>Feature has no properties</b>'
     return stdout
 
 
