@@ -30,6 +30,7 @@ ZOOM_SCALES = {
 class Map(ipyleaflet.Map):
     tab_children_dict = Dict()
     EELayers = Dict()
+
     def __init__(self, tabs=('Inspector', 'Layers'), **kwargs):
         # Change defaults
         kwargs.setdefault('center', [0, 0])
@@ -500,7 +501,7 @@ class Map(ipyleaflet.Map):
             try:
                 img = ee.Image(collist.get(n))
                 name = utils.makeName(img, namePattern, datePattern)
-                self.addLayer(img, visParams, str(name), show, opacity,
+                self.addLayer(img, visParams, name.getInfo(), show, opacity,
                               replace=replace)
                 n += 1
             except:
