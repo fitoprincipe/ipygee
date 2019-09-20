@@ -203,7 +203,7 @@ class Image(object):
     @staticmethod
     def series(imageCollection, region, reducer='mean', scale=None,
                xProperty='system:time_start', bands=None, label_bands=None,
-               properties=None, label_properties=None):
+               properties=None, label_properties=None, **kwargs):
         """ Basic plot over an ImageCollection
 
         :param region: the region to reduce over an get a (unique) value
@@ -324,12 +324,12 @@ class Image(object):
         newdf = df.sort_values(xProperty)
 
         if datetime:
-            chart = DateTimeLine()
+            chart = DateTimeLine(**kwargs)
         else:
-            chart = Line()
+            chart = Line(**kwargs)
 
-        line_chart = fromPandas(chart, newdf, y=ydata,
-                                x=xProperty, datetime=datetime)
+        line_chart = fromPandas(chart, newdf, y=ydata, x=xProperty,
+                                datetime=datetime)
 
         if isinstance(reducer, str):
             reducer_name = reducer
