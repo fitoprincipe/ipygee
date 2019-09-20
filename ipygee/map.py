@@ -133,6 +133,11 @@ class Map(ipyleaflet.Map):
             copyEELayers.pop(name)
         self.EELayers = copyEELayers
 
+    def addBasemap(self, name, url, **kwargs):
+        """ Add a basemap with the given URL """
+        layer = ipyleaflet.TileLayer(url=url, name=name, base=True, **kwargs)
+        self.add_layer(layer)
+
     def setDimensions(self, width=None, height=None):
         """ Set the dimensions for the map """
         def check(value, t):
@@ -192,7 +197,7 @@ class Map(ipyleaflet.Map):
     @observe('EELayers')
     def _ob_EELayers(self, change):
         new = change['new']
-        proxy_layers = [self.layers[0]]
+        proxy_layers = [l for l in self.layers if l.base == True]
 
         for val in new.values():
             layer = val['layer']
