@@ -145,7 +145,7 @@ class AssetManager(VBox):
             return assets
 
         # get selection on root
-        begin = self.children[1]  # CheckAccordion of root
+        begin = self.children[2]  # CheckAccordion of root
         return wrap(begin)
 
     def core(self, path):
