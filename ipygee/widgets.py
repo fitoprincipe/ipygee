@@ -95,6 +95,12 @@ class CheckAccordion(VBox):
         acc = checkrow.widget
         acc.set_title(0, title)
 
+    def set_titles(self, titles):
+        """ set the titles for all children, `titles` size must match
+        `children` size """
+        for i, title in enumerate(titles):
+            self.set_title(i, title)
+
     def get_title(self, index):
         """ get the title of the widget at indicated index"""
         checkrow = self.children[index]
