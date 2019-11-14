@@ -505,7 +505,8 @@ class Map(ipyleaflet.Map):
         while True:
             try:
                 img = ee.Image(collist.get(n))
-                name = utils.makeName(img, namePattern, datePattern)
+                extra = dict(position=n)
+                name = utils.makeName(img, namePattern, datePattern, extra=extra)
                 self.addLayer(img, visParams, name.getInfo(), show, opacity,
                               replace=replace)
                 n += 1
