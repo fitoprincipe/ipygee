@@ -54,8 +54,10 @@ def formatter(task):
                    running=running_str, start=start_str)
         widget = HTML(html_str)
     elif state == 'COMPLETED':
-        urls = task.get('output_url')
-        url = urls[0]
+        uris = task.get('destination_uris') or task.get('output_url')
+        url = ""
+        for uri in uris:
+            url += "<a href={url} target='_blank'>{url}</a></br>".format(url=uri)
 
         start = task.get('start_timestamp_ms')
         start_dt = utils.get_datetime(start)
@@ -74,7 +76,7 @@ def formatter(task):
         <strong>finished running on:</strong> {finish}</br>
         <strong>ellapsed since creation:</strong> {ellapsed}</br>
         <strong>running:</strong> {running}</br>
-        <strong>URL:</strong> <a href={url} target='_blank'>{url}</a>
+        <strong>URL:</strong> {url}
         """.format(url=url, creation=created_str, ellapsed=ellapsed,
                    running=running_str, start=start_str, finish=finish_str)
 

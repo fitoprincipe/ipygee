@@ -230,9 +230,8 @@ def getImageTile(image, visParams, show=True, opacity=None,
 
     # Get the MapID and Token after applying parameters
     image_info = image.getMapId(proxy)
-    mapid = image_info['mapid']
-    token = image_info['token']
-    tiles = "https://earthengine.googleapis.com/map/%s/{z}/{x}/{y}?token=%s"%(mapid,token)
+    fetcher = image_info['tile_fetcher']
+    tiles = fetcher.url_format
     attribution = 'Map Data &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a> '
     overlay = overlay
 
