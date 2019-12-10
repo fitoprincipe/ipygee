@@ -9,6 +9,23 @@ from .threading import Thread
 import time
 from .widgets import CheckRow
 import ee
+import re
+
+
+def get_asset_id(url):
+    """ get the assetId from a URL """
+    try:
+        assetId = re.search('users/.+', url).group()
+    except AttributeError:
+        try:
+            assetId = re.search('projects/.+', url).group()
+        except AttributeError:
+            try:
+                assetId = url.split('?')[1].split('=')[1]
+            except:
+                assetId = None
+
+    return assetId
 
     
 def formatter(task):
@@ -81,11 +98,13 @@ def formatter(task):
                    running=running_str, start=start_str, finish=finish_str)
 
         try:
-            asset = url.split('?')[1].split('=')[1]
-            html_str = """
-            {}</br>
-            <strong>AssetId:</strong> {}
-            """.format(html_str, asset)
+            for uri in uris:
+                asset = get_asset_id(uri)
+                if asset:
+                    html_str = """
+                    {}</br>
+                    <strong>AssetId:</strong> {}
+                    """.format(html_str, asset)
         except:
             pass
         widget = HTML(html_str)
