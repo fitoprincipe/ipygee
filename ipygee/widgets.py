@@ -68,7 +68,8 @@ class CheckRow(HBox):
 
 
 class CheckAccordion(VBox):
-    widgets = Tuple()
+    # widgets = Tuple()
+    widgets = List()
 
     def __init__(self, widgets, **kwargs):
         # self.widgets = widgets

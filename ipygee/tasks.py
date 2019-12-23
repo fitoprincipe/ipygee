@@ -1,15 +1,59 @@
 # coding=utf-8
 
 """ Google Earth Engine Task Manager """
-
-import datetime
+from .widgets import CheckAccordion, ConfirmationWidget
+from datetime import timedelta, datetime
+from collections import namedtuple
+from dateutil import tz
+from ipygee import utils
 from ipywidgets import *
-from . import utils
 from .threading import Thread
 import time
-from .widgets import CheckRow
 import ee
 import re
+
+EPOCH = datetime(1970, 1, 1, 0, 0, tzinfo=tz.tzutc())
+
+TEMPLATES = dict()
+TEMPLATES['PENDING'] = """
+<strong>created on:</strong> {creation}</br>
+<strong>ellapsed since creation:</strong> {elapsed}
+"""
+TEMPLATES['RUNNING'] = """
+<strong>created on:</strong> {creation}</br>
+<strong>started running on:</strong> {start}</br>
+<strong>ellapsed since creation:</strong> {elapsed}</br>
+<strong>running:</strong> {running}</br>
+<strong>waiting:</strong> {waiting}
+"""
+TEMPLATES['SUCCEEDED'] = """
+<strong>created on:</strong> {creation}</br>
+<strong>started running on:</strong> {start}</br>
+<strong>finished running on:</strong> {finish}</br>
+<strong>running:</strong> {running}</br>
+<strong>waiting:</strong> {waiting}</br>
+<strong>URLs:</strong> {url}
+"""
+TEMPLATES['FAILED'] = """
+<strong>created on:</strong> {creation}</br>
+<strong>started running on:</strong> {start}</br>
+<strong>failed on:</strong> {failed}</br>
+<strong>ellapsed since creation:</strong> {elapsed}</br>
+<strong>running:</strong> {running}</br>
+<strong>waiting:</strong> {waiting}</br>
+<strong>error:</strong> {error}
+"""
+TEMPLATES['CANCELLED'] = """
+<strong>created on:</strong> {creation}</br>
+<strong>cancelled on:</strong> {cancel}</br>
+<strong>running:</strong> {running}</br>
+<strong>ellapsed since creation:</strong> {elapsed}</br>
+<strong>waiting:</strong> {waiting}
+"""
+
+
+def now():
+    return datetime.now().astimezone(tz.tzlocal())
 
 
 def get_asset_id(url):
@@ -27,212 +71,363 @@ def get_asset_id(url):
 
     return assetId
 
-    
-def formatter(task):
-    """ Format a task and return a widget """
-    now_dt = datetime.datetime.now()
-    state = task.get('state')
-    task_id = task.get('id')
-    # UPDATED TIME
-    # updated = task.get('update_timestamp_ms')
-    # if updated:
-    #      update_ts = get_timestamp(updated)
 
-    # CREATION TIME
-    creation = task.get('creation_timestamp_ms')
-    created_dt = utils.get_datetime(creation)
-    created_str = utils.format_timestamp(creation) if creation else ''
+class Task(object):
 
-    # ELLAPSED
-    if creation:
-        delta_ellapsed = now_dt - utils.get_datetime(creation)
-        ellapsed = utils.format_elapsed(delta_ellapsed.total_seconds())
-    else:
-        ellapsed = ''
+    @staticmethod
+    def delta2millis(dt):
+        """ convert a timedelta to milliseconds """
+        return dt.total_seconds() * 1000
 
-    if state == 'READY':
-        html_str = """
-        <strong>created on:</strong> {creation}</br>
-        <strong>ellapsed since creation:</strong> {ellapsed}
-        """.format(creation=created_str, ellapsed=ellapsed)
-        widget = HTML(html_str)
-    elif state == 'RUNNING':
-        start = task.get('start_timestamp_ms')
-        start_dt = utils.get_datetime(start)
-        start_str = utils.format_timestamp(start)
-        running_td = now_dt - start_dt
-        running_str = utils.format_elapsed(running_td.total_seconds())
-        html_str = """
-        <strong>created on:</strong> {creation}</br>
-        <strong>started running on:</strong> {start}</br>
-        <strong>ellapsed since creation:</strong> {ellapsed}</br>
-        <strong>running:</strong> {running}
-        """.format(creation=created_str, ellapsed=ellapsed,
-                   running=running_str, start=start_str)
-        widget = HTML(html_str)
-    elif state == 'COMPLETED':
-        uris = task.get('destination_uris') or task.get('output_url')
-        url = ""
-        for uri in uris:
-            url += "<a href={url} target='_blank'>{url}</a></br>".format(url=uri)
+    @staticmethod
+    def millis2delta(ms):
+        """ convert a timedelta to milliseconds"""
+        return timedelta(seconds= ms / 1000)
 
-        start = task.get('start_timestamp_ms')
-        start_dt = utils.get_datetime(start)
-        start_str = utils.format_timestamp(start)
+    @staticmethod
+    def _create_tuple_datetime(name, time):
+        nt = namedtuple(name, ('utc', 'local', 'str'))
+        if not time:
+            return nt(utc=None, local=None, str='')
 
-        finish = task.get('update_timestamp_ms')
-        finish_dt = utils.get_datetime(finish)
-        finish_str = utils.format_timestamp(finish)
+        utc = datetime.fromisoformat(time)
+        utc = utc.replace(tzinfo=tz.tzutc())
+        local = utc.astimezone(tz.tzlocal())
+        string = local.isoformat()
+        return nt(utc=utc, local=local, str=string)
 
-        running_td = finish_dt - start_dt
-        running_str = utils.format_elapsed(running_td.total_seconds())
+    @staticmethod
+    def _create_tuple_timedelta(name, delta):
+        nt = namedtuple(name, ('delta', 'str'))
+        if not delta:
+            return nt(delta=None, str='0s')
 
-        html_str = """
-        <strong>created on:</strong> {creation}</br>
-        <strong>started running on:</strong> {start}</br>
-        <strong>finished running on:</strong> {finish}</br>
-        <strong>ellapsed since creation:</strong> {ellapsed}</br>
-        <strong>running:</strong> {running}</br>
-        <strong>URL:</strong> {url}
-        """.format(url=url, creation=created_str, ellapsed=ellapsed,
-                   running=running_str, start=start_str, finish=finish_str)
+        seconds = delta.total_seconds()
+        string = utils.format_elapsed(seconds)
+        return nt(delta=delta, str=string)
 
-        try:
-            for uri in uris:
-                asset = get_asset_id(uri)
-                if asset:
-                    html_str = """
-                    {}</br>
-                    <strong>AssetId:</strong> {}
-                    """.format(html_str, asset)
-        except:
-            pass
-        widget = HTML(html_str)
+    def __init__(self, task=None, name=None, templates=TEMPLATES, **kwargs):
+        super(Task, self).__init__(**kwargs)
+        self.templates = templates
+        if task:
+            self.task = task
+            self.name = task.get('name')
+        elif name:
+            self.name = name
+            self.task = ee.data.getOperation(name)
 
-    elif state == 'FAILED':
-        start = task.get('start_timestamp_ms')
-        start_dt = utils.get_datetime(start)
-        start_str = utils.format_timestamp(start)
+    @property
+    def status(self):
+        return ee.data.getOperation(self.name)
 
-        finish = task.get('update_timestamp_ms')
-        finish_dt = utils.get_datetime(finish)
-        finish_str = utils.format_timestamp(finish)
+    @property
+    def metadata(self):
+        return self.task.get('metadata')
 
-        running_td = finish_dt - start_dt
-        running_str = utils.format_elapsed(running_td.total_seconds())
+    @property
+    def state(self):
+        return self.metadata.get('state')
 
-        error = task.get('error_message')
+    @property
+    def description(self):
+        return self.metadata.get('description')
 
-        html_str = """
-        <strong>created on:</strong> {creation}</br>
-        <strong>started running on:</strong> {start}</br>
-        <strong>failed on:</strong> {finish}</br>
-        <strong>ellapsed since creation:</strong> {ellapsed}</br>
-        <strong>running:</strong> {running}</br>
-        <strong>error:</strong> {error}
-        """.format(creation=created_str, ellapsed=ellapsed,
-                   running=running_str, start=start_str, finish=finish_str,
-                   error=error)
-        widget = HTML(html_str)
+    @property
+    def response(self):
+        return self.metadata.get('response')
 
-    elif state == 'CANCELLED':
-        cancelled_ts = task.get('update_timestamp_ms')
-        cancelled_dt = utils.get_datetime(cancelled_ts)
-        cancelled_str = utils.format_timestamp(cancelled_ts)
-        active_td = cancelled_dt - created_dt
-        active_str = utils.format_elapsed(active_td.total_seconds())
+    @property
+    def task_type(self):
+        return self.metadata.get('type')
 
-        html_str = """
-        <strong>created on:</strong> {creation}</br>
-        <strong>cancelled on:</strong> {cancel}</br>
-        <strong>running:</strong> {active}</br>
-        <strong>ellapsed since creation:</strong> {ellapsed}</br>
-        """.format(creation=created_str, ellapsed=ellapsed,
-                   cancel=cancelled_str, active=active_str)
-        widget = HTML(html_str)
-    else:
-        widget = utils.create_accordion(task)
+    @property
+    def create_time(self):
+        t = self.metadata.get('createTime')
+        return t[:-1] if t else None
 
-    widget.task_id = task_id
-    widget.task_state = state
-    return widget
+    @property
+    def update_time(self):
+        t = self.metadata.get('updateTime')
+        return t[:-1] if t else None
+
+    @property
+    def start_time(self):
+        t = self.metadata.get('startTime')
+        return t[:-1] if t else None
+
+    def update(self):
+        self.task = self.status
+
+    def cancel(self):
+        ee.data.cancelOperation(self.name)
+
+    def is_done(self):
+        done = self.task.get('done')
+        return done or False
+
+    def has_started(self):
+        return False if self.started.utc == EPOCH else True
+
+    def has_finished(self):
+        return True if self.state == 'SUCCEEDED' else False
+
+    def has_failed(self):
+        return True if self.state == 'FAILED' else False
+
+    def is_running(self):
+        return True if self.state == 'RUNNING' else False
+
+    def is_pending(self):
+        return True if self.state == 'PENDING' else False
+
+    def is_cancelled(self):
+        return True if self.state == 'CANCELLED' else False
+
+    @property
+    def uris(self):
+        return self.metadata.get('destinationUris')
+
+    @property
+    def error(self):
+        err = self.task.get('error')
+        msg = err.get('message') if err else ''
+        return msg
+
+    @property
+    def created(self):
+        return self._create_tuple_datetime('Created', self.create_time)
+
+    @property
+    def started(self):
+        return self._create_tuple_datetime('Started', self.start_time)
+
+    @property
+    def updated(self):
+        return self._create_tuple_datetime('Updated', self.update_time)
+
+    @property
+    def finished(self):
+        t = self.update_time if self.has_finished() else 0
+        return self._create_tuple_datetime('Finished', t)
+
+    @property
+    def failed(self):
+        t = self.update_time if self.has_failed() else None
+        return self._create_tuple_datetime('Failed', t)
+
+    @property
+    def cancelled(self):
+        t = self.update_time if self.is_cancelled() else 0
+        return self._create_tuple_datetime('Cancelled', t)
+
+    @property
+    def title(self):
+        if not (self.has_finished() or self.has_failed() or self.is_cancelled()):
+            value = '{} ({})'.format(self.description, self.task_type)
+        else:
+            value = '{} ({}) [{}]'.format(self.description, self.task_type, self.running.str)
+
+        return value
+
+    @property
+    def since_creation(self):
+        td = datetime.now().astimezone(tz.tzlocal()) - self.created.local
+        return self._create_tuple_timedelta('SinceCreation', td)
+
+    @property
+    def waiting(self):
+        if not self.has_started():
+            if self.is_cancelled():
+                td = self.cancelled.local - self.created.local
+            else:
+                td = now() - self.created.local
+        else:
+            td = self.started.local - self.created.local
+
+        return self._create_tuple_timedelta('Waiting', td)
+
+    @property
+    def running(self):
+        if not self.has_started():
+            td = timedelta(0)
+
+        if self.has_started():
+            if self.is_running():
+                td = now() - self.started.local
+
+            if self.has_finished():
+                td = self.finished.local - self.started.local
+
+            if self.has_failed():
+                td = self.failed.local - self.started.local
+
+            if self.is_cancelled():
+                td = self.cancelled.local - self.started.local
+
+        return self._create_tuple_timedelta('Running', td)
+
+    def urls(self):
+        if self.uris:
+            return self.uris
+        else:
+            return []
+
+    def html(self):
+        template = self.templates.get(self.state)
+        return template.format(
+            creation = self.created.str,
+            elapsed = self.since_creation.str,
+            start = self.started.str,
+            running = self.running.str,
+            finish = self.finished.str,
+            url = '</br>'.join(self.urls()) if self.urls() else '',
+            error = self.error,
+            failed = self.failed.str,
+            cancel = self.cancelled.str,
+            waiting = self.waiting.str
+        )
 
 
-class TaskManager(VBox):
-    def __init__(self, **kwargs):
-        super(TaskManager, self).__init__(**kwargs)
-        # Header
+class TaskList(CheckAccordion):
+    def __init__(self, raw=None, limit=None, **kwargs):
+        self.tasks = list()
+        self.limit = limit
+        self.raw = raw or []
+        super(TaskList, self).__init__(widgets=self.tasks, **kwargs)
+
+    def size(self):
+        return len(self.raw)
+
+    def filter(self, value='PENDING', by='state'):
+        """ Filter the Task List and return a new Widget """
+        if by == 'state':
+            filtered = [task for task in self.raw if task['metadata']['state'] == value]
+        return TaskList(filtered)
+
+    def make(self):
+        tasklist = list()
+        taskwid = list()
+        titles = list()
+        if not self.limit:
+            limit = self.raw
+        else:
+            limit = self.raw[0:self.limit]
+
+        for task in limit:
+            t = Task(task=task)
+            tasklist.append(t)
+            taskwid.append(HTML(t.html()))
+            titles.append(t.title)
+
+        self.tasks = tasklist
+        self.widgets = taskwid
+        self.set_titles(titles)
+
+    def selected_tasks(self):
+        """ Get the selected tasks """
+        selected = self.checked_rows()
+        return [self.tasks[sel] for sel in selected]
+
+    def update_all_tasks(self):
+        for i in range(self.size()):
+            self.update_position(i)
+
+    def update_position(self, position):
+        task = self.tasks[position]
+        wids = self.widgets
+        title = task.title
+        wids[position].value = '<b>Loading...</b>'
+        task.update()
+        newcontent = task.html()
+        wids[position].value = newcontent
+
+    def cancel_position(self, position):
+        task = self.tasks[position]
+        task.cancel()
+        wids = self.widgets
+        wids[position].value = '<b>Cancelled request sent</b>'
+
+    def update_selected(self):
+        selected = self.checked_rows()
+        for sel in selected:
+            self.update_position(sel)
+
+    def cancel_selected(self):
+        selected = self.checked_rows()
+        name_list = [self.tasks[sel].title for sel in selected if self.tasks[sel].is_running()]
+        if (name_list):
+            names = ''
+            for name in name_list:
+                names += '<li>'+name+'</li>'
+            title = '<b>Cancelling selected tasks</b>'
+            legend = 'Are you sure you want to cancel the following tasks?? </br><ul>{}</ul>'.format(names)
+            def yes(button=None):
+                for sel in selected:
+                    self.cancel_position(sel)
+            confirmation = ConfirmationWidget(title=title, legend=legend,
+                                              handle_yes=yes)
+            return confirmation
+
+
+class TaskHeader(HBox):
+    def __init__(self, tab, logger, **kwargs):
+        super(TaskHeader, self).__init__(**kwargs)
+        self.tab = tab
+        self.logger = logger
         self.checkbox = Checkbox(indent=False,
                                  layout=Layout(flex='1 1 20', width='auto'))
         self.cancel_selected = Button(description='Cancel Selected',
                                       tooltip='Cancel all selected tasks')
-        self.cancel_all = Button(description='Cancell All',
-                                 tooltip='Cancel all tasks')
-        self.refresh = Button(description='Refresh',
-                              tooltip='Refresh Tasks List')
+        self.refresh_all = Button(description='Refresh',
+                                  tooltip='Refresh Tasks List')
+        self.update_selected = Button(description='Update Selected',
+                                      tooltip='Update Selected Tasks')
         self.autorefresh = ToggleButton(description='auto-refresh',
                                         tooltip='click to enable/disable autorefresh')
         self.slider = IntSlider(min=5, max=120, step=1, value=15)
-        self.hbox = HBox([self.checkbox, self.refresh,
-                          self.cancel_selected, self.cancel_all,
-                          self.autorefresh, self.slider])
+        self.children = [self.checkbox, self.refresh_all, self.update_selected,
+                         self.cancel_selected, self.autorefresh, self.slider]
 
-        # Tabs for COMPLETED, FAILED, etc
-        self.tabs = Tab()
-        # Tabs index
-        self.tab_index = {
-            0: 'READY',
-            1: 'RUNNING',
-            2: 'COMPLETED',
-            3: 'FAILED',
-            4: 'CANCELLED',
-            5: 'UNKNOWN',
-            6: 'CANCEL_REQUESTED'
-        }
-
-        self.taskVBox = VBox()
-
-        self.runningVBox = VBox()
-        self.completedVBox = VBox()
-        self.failedVBox = VBox()
-        self.canceledVBox = VBox()
-        self.unknownVBox = VBox()
-        self.readyVBox = VBox()
-        self.cancelRequestedVBox = VBox()
-
-        self.tab_widgets_rel = {'RUNNING': self.runningVBox,
-                                'COMPLETED': self.completedVBox,
-                                'FAILED': self.failedVBox,
-                                'CANCELLED': self.canceledVBox,
-                                'READY': self.readyVBox,
-                                'UNKNOWN': self.unknownVBox,
-                                'CANCEL_REQUESTED': self.cancelRequestedVBox}
-
-        # Create Tabs
-        self.tab_widgets = []
-        for key, val in self.tab_index.items():
-            widget = self.tab_widgets_rel[val]
-            self.tab_widgets.append(widget)
-            self.tabs.children = self.tab_widgets
-            self.tabs.set_title(key, val)
-
-        # First widget
-        self.update_task_list()
-        # self.children = (self.hbox, self.taskVBox)
-        self.children = (self.hbox, self.tabs)
-
-        # Set on_click for refresh button
-        self.refresh.on_click(lambda refresh: self.update_task_list())
-
-        # Set on_clicks
-        self.cancel_all.on_click(self.cancel_all_click)
-        self.cancel_selected.on_click(self.cancel_selected_click)
+        # Set handlers
+        self.refresh_all.on_click(self.on_refresh_all)
+        self.update_selected.on_click(self.on_update_selected)
+        self.cancel_selected.on_click(self.on_cancel_selected)
+        self.checkbox.observe(self.select_all, names='value')
         self.autorefresh.observe(self.autorefresh_handler, names='value')
+
+        def tab_handler(change):
+            self.checkbox.value = False
+        self.tab.observe(tab_handler, names='selected_index')
+
+    # Handlers
+    def on_refresh_all(self, button):
+        self.tab.refresh()
+
+    def on_update_selected(self, button):
+        self.tab.update_selected()
+
+    def on_cancel_selected(self, button):
+        wid = self.tab.cancel_selected()
+        self.logger.children = [wid]
+
+        def emptyLogger(button=None):
+            self.logger.children = []
+
+        # add handlers
+        wid.yes.on_click(emptyLogger)
+        wid.no.on_click(emptyLogger)
+        wid.cancel.on_click(emptyLogger)
+
+    def select_all(self, change):
+        value = change['new']
+        TL = self.tab.get_tasklist()
+        for checkrow in TL.children:
+            checkrow.checkbox.value = value
 
     def autorefresh_loop(self, slider):
         while True:
             time.sleep(slider.value)
-            self.update_task_list()
+            self.tab.refresh()
 
     def autorefresh_handler(self, change):
         value = change['new']
@@ -245,119 +440,148 @@ class TaskManager(VBox):
             owner.process.terminate()
             owner.process.join()
 
-    def tab_handler(self, change):
-        if change['name'] == 'selected_index':
-            self.update_task_list()
 
-    def selected_tab(self):
-        ''' get the selected tab '''
-        index = self.tabs.selected_index
-        tab_name = self.tab_index[index]
-        return self.tab_widgets_rel[tab_name]
+class TaskTab(Tab):
+    categories = ['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED']
+    TL_index = 0
 
-    def update_task_list(self):
-        self.selected_tab().children = (HTML('Loading...'),)
-        try:
-            tasklist = ee.data.getTaskList()
-            # empty lists
-            running_list = []
-            completed_list = []
-            failed_list = []
-            canceled_list = []
-            unknown_list = []
-            ready_list = []
-            canceled_request_list = []
-            all_list = {'RUNNING': running_list, 'COMPLETED': completed_list,
-                        'FAILED': failed_list, 'CANCELLED': canceled_list,
-                        'READY': ready_list, 'UNKNOWN': unknown_list,
-                        'CANCEL_REQUESTED': canceled_request_list}
+    def __init__(self, limit=None, **kwargs):
+        super(TaskTab, self).__init__(**kwargs)
+        self.limit = limit
+        child = []
 
-            for task in tasklist:
-                state = task['state']
-                description = task['description']
-                task_type = task['task_type']
-                name = '{} ({})'.format(description, task_type)
-                # # Accordion for CheckRow widget
-                taskwidget = formatter(task)
-                mainacc = Accordion(children=(taskwidget, ))
-                mainacc.set_title(0, name)
-                mainacc.selected_index = None
-                # CheckRow
-                wid = CheckRow(mainacc)
-                # Append widget to the CORRECT list
-                all_list[state].append(wid)
-            # Assign Children
-            self.runningVBox.children = tuple(running_list)
-            self.completedVBox.children = tuple(completed_list)
-            self.failedVBox.children = tuple(failed_list)
-            self.canceledVBox.children = tuple(canceled_list)
-            self.unknownVBox.children = tuple(unknown_list)
-            self.readyVBox.children = tuple(ready_list)
-            self.cancelRequestedVBox.children = tuple(canceled_request_list)
-        except Exception as e:
-            self.selected_tab().children = (HTML(str(e)),)
+        for cat in self.categories:
+            child.append(VBox())
 
-    def get_selected(self):
-        """ Get selected Tasks
+        self.children = child
+        self.make_tasklist()
+        self.complete_titles()
+        self.make(0)
+        self.rendered = [0]
 
-        :return: a list of the selected indexes
-        """
-        selected = []
-        children = self.selected_tab().children
-        for i, child in enumerate(children):
-            # checkrow = child.children[0] # child is an accordion
-            state = child.checkbox.value
-            if state: selected.append(i)
-        return selected
+        def on_select(change):
+            name = change.get('name')
+            if name == 'selected_index':
+                i = change.get('new')
+                this = change.get('owner')
+                if i not in self.rendered:
+                    self.show_loading(i)
+                    self.make(i)
+                    self.rendered.append(i)
 
-    def get_taskid(self, index):
-        # Get selected Tab
-        selected_wid = self.selected_tab() # VBox
-        # Children of the Tab's VBox
-        children = selected_wid.children
-        # Get CheckRow that corresponds to the passed index
-        checkrow = children[index]
-        # Get main accordion
-        mainacc = checkrow.widget
-        # Get details accordion
-        selectedacc = mainacc.children[0]
-        for n, child in enumerate(selectedacc.children):
-            title = selectedacc.get_title(n)
-            if title == 'id':
-                return child.value
+        self.observe(on_select)
 
-    def get_selected_taskid(self):
-        """ Get selected Tasks ID
+    def show_loading(self, i):
+        category = self.categories[i]
+        vbox = self.children[i]
+        vbox.children = [Label('Loading...')]
 
-        :return: a list of the selected task ids
-        """
-        selected_wid = self.selected_tab() # VBox
-        children = selected_wid.children
-        taskid_list = []
-        for child in children:
-            html_wid = child.widget.children[0]
-            selected = child.checkbox.value
-            if selected:
-                taskid_list.append(html_wid.task_id)
+    def make(self, i):
+        """ Make a category TaskList """
+        category = self.categories[i]
+        vbox = self.children[i]
+        TL = self.TL.filter(category)
+        if self.limit:
+            TL.limit = self.limit
+        TL.make()
+        vbox.children = [TL]
 
-        return taskid_list
+    def make_tasklist(self):
+        self.tasklist = ee.data.listOperations()
+        self.TL = TaskList(self.tasklist, self.limit)
 
-    def cancel_selected_click(self, button):
-        selected = self.get_selected_taskid()
-        for taskid in selected:
-            try:
-                ee.data.cancelTask(taskid)
-            except:
-                continue
-        self.update_task_list()
+    def get_tasklist(self, i=None):
+        """ Get the TaskList from a category """
+        i = i or self.selected_index
+        vbox = self.children[i]
+        TL = vbox.children[self.TL_index]
+        return TL
 
-    def cancel_all_click(self, button):
-        selected_wid = self.selected_tab() # VBox
-        children = selected_wid.children
-        for n, child in enumerate(children):
-            taskid = self.get_taskid(n)
-            try:
-                ee.data.cancelTask(taskid)
-            except:
-                continue
-        self.update_task_list()
+    def complete_titles(self):
+        for category in self.categories:
+            i = self.categories.index(category)
+            TL = self.TL.filter(category)
+            size = TL.size()
+            if self.limit and size>self.limit:
+                size_str = '{}+'.format(self.limit)
+            else:
+                size_str = '{}'.format(size)
+
+            name = '{} [{}]'.format(category, size_str)
+            self.set_title(i, name)
+
+    def refresh(self):
+        i = self.selected_index
+        self.show_loading(i)
+        self.make_tasklist()
+        self.complete_titles()
+        self.make(i)
+        self.rendered = [i]
+
+    def update_selected(self, i=None):
+        TL = self.get_tasklist(i)
+        TL.update_selected()
+
+    def cancel_selected(self, i=None):
+        TL = self.get_tasklist(i)
+        return TL.cancel_selected()
+
+
+class TaskManager(VBox):
+    def __init__(self, limit=None, **kwargs):
+        super(TaskManager, self).__init__(**kwargs)
+        self.tabs = TaskTab(limit)
+        self.logger = HBox()
+        self.header = TaskHeader(self.tabs, self.logger)
+        self.children = [self.header, self.logger, self.tabs]
+
+    def selected_tasks(self):
+        i = self.tabs.selected_index
+        vbox = self.tabs.children[i]
+        TL = vbox.children[0]
+        return TL.selected_tasks()
+
+    @staticmethod
+    def _sum_deltas(deltas):
+        if len(deltas) > 1:
+            total = deltas[0]
+            rest = deltas[1:]
+            for d in rest:
+                total += d
+        elif len(deltas) == 1:
+            total = deltas[0]
+        else:
+            total = timedelta(0)
+
+        return total
+
+    def compute_waiting(self):
+        tasks = self.selected_tasks()
+        delta = None
+        if tasks:
+            created = [task.created.local for task in tasks]
+            min_created = min(created)
+            started = []
+            for task in tasks:
+                if task.has_started():
+                    started.append(task.started.local)
+            if started:
+                max_started = max(started)
+                delta = max_started - min_created
+        return delta
+
+    def compute_running(self):
+        tasks = self.selected_tasks()
+        delta = None
+        if tasks:
+            started = []
+            finished = []
+            for task in tasks:
+                if task.has_started() and task.has_finished():
+                    started.append(task.started.local)
+                    finished.append(task.finished.local)
+            if started and finished:
+                min_started = min(started)
+                max_finished = max(finished)
+                delta = max_finished - min_started
+        return delta
