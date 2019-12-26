@@ -555,7 +555,11 @@ class TaskManager(VBox):
 
         return total
 
-    def compute_waiting(self):
+    def waiting_time(self):
+        """ Compute the waiting time of the selected tasks. It does not sum
+        all waiting times but counts from the time of the first created to the
+        time of the one that started at last
+        """
         tasks = self.selected_tasks()
         delta = None
         if tasks:
@@ -570,7 +574,11 @@ class TaskManager(VBox):
                 delta = max_started - min_created
         return delta
 
-    def compute_running(self):
+    def running_time(self):
+        """ Compute the running time. It does not sum all running times but
+        counts from the time of the first that started running to the last
+        that finished
+        """
         tasks = self.selected_tasks()
         delta = None
         if tasks:
