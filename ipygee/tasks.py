@@ -599,3 +599,22 @@ class TaskManager(VBox):
                 max_finished = max(finished)
                 delta = max_finished - min_started
         return delta
+
+    def total_time(self):
+        """ Compute running time + waiting time. It is NOT the same as summing
+        both separately
+        """
+        tasks = self.selected_tasks()
+        delta = None
+        if tasks:
+            created = []
+            finished = []
+            for task in tasks:
+                if task.has_started() and task.has_finished():
+                    created.append(task.created.local)
+                    finished.append(task.finished.local)
+            if created and finished:
+                min_created = min(created)
+                max_finished = max(finished)
+                delta = max_finished - min_created
+        return delta
