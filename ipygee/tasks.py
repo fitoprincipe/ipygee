@@ -16,10 +16,12 @@ EPOCH = datetime(1970, 1, 1, 0, 0, tzinfo=tz.tzutc())
 
 TEMPLATES = dict()
 TEMPLATES['PENDING'] = """
+<strong>state:</strong> {state}</br>
 <strong>created on:</strong> {creation}</br>
 <strong>ellapsed since creation:</strong> {elapsed}
 """
 TEMPLATES['RUNNING'] = """
+<strong>state:</strong> {state}</br>
 <strong>created on:</strong> {creation}</br>
 <strong>started running on:</strong> {start}</br>
 <strong>ellapsed since creation:</strong> {elapsed}</br>
@@ -27,6 +29,7 @@ TEMPLATES['RUNNING'] = """
 <strong>waiting:</strong> {waiting}
 """
 TEMPLATES['SUCCEEDED'] = """
+<strong>state:</strong> {state}</br>
 <strong>created on:</strong> {creation}</br>
 <strong>started running on:</strong> {start}</br>
 <strong>finished running on:</strong> {finish}</br>
@@ -35,6 +38,7 @@ TEMPLATES['SUCCEEDED'] = """
 <strong>URLs:</strong> {url}
 """
 TEMPLATES['FAILED'] = """
+<strong>state:</strong> {state}</br>
 <strong>created on:</strong> {creation}</br>
 <strong>started running on:</strong> {start}</br>
 <strong>failed on:</strong> {failed}</br>
@@ -44,6 +48,7 @@ TEMPLATES['FAILED'] = """
 <strong>error:</strong> {error}
 """
 TEMPLATES['CANCELLED'] = """
+<strong>state:</strong> {state}</br>
 <strong>created on:</strong> {creation}</br>
 <strong>cancelled on:</strong> {cancel}</br>
 <strong>running:</strong> {running}</br>
@@ -284,7 +289,8 @@ class Task(object):
             error = self.error,
             failed = self.failed.str,
             cancel = self.cancelled.str,
-            waiting = self.waiting.str
+            waiting = self.waiting.str,
+            state = self.state
         )
 
 
