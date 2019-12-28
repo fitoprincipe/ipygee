@@ -56,7 +56,7 @@ TEMPLATES['CANCELLED'] = """
 <strong>waiting:</strong> {waiting}
 """
 
-
+# HELPERS
 def now():
     return datetime.now().astimezone(tz.tzlocal())
 
@@ -77,6 +77,18 @@ def get_asset_id(url):
     return assetId
 
 
+def fromisoformat(iso):
+    """ for python versions < 3.7 get datetime from isoformat """
+    d, t = iso.split('T')
+    year, month, day = d.split('-')
+    hours, minutes, seconds = t.split(':')
+    seconds = float(seconds[0:-1])
+    sec = int(seconds)
+    microseconds = int((seconds-sec)*1e6)
+
+    return datetime(int(year), int(month), int(day), int(hours), int(minutes), sec, microseconds)
+
+
 class Task(object):
 
     @staticmethod
@@ -95,7 +107,11 @@ class Task(object):
         if not time:
             return nt(utc=None, local=None, str='')
 
-        utc = datetime.fromisoformat(time)
+        try:
+            utc = datetime.fromisoformat(time)
+        except AttributeError:
+            utc = fromisoformat(time)
+
         utc = utc.replace(tzinfo=tz.tzutc())
         local = utc.astimezone(tz.tzlocal())
         string = local.isoformat()
