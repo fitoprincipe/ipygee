@@ -414,15 +414,16 @@ class TaskHeader(HBox):
 
     def on_cancel_selected(self, button):
         wid = self.tab.cancel_selected()
-        self.logger.children = [wid]
+        if wid:
+            self.logger.children = [wid]
 
-        def emptyLogger(button=None):
-            self.logger.children = []
+            def emptyLogger(button=None):
+                self.logger.children = []
 
-        # add handlers
-        wid.yes.on_click(emptyLogger)
-        wid.no.on_click(emptyLogger)
-        wid.cancel.on_click(emptyLogger)
+            # add handlers
+            wid.yes.on_click(emptyLogger)
+            wid.no.on_click(emptyLogger)
+            wid.cancel.on_click(emptyLogger)
 
     def select_all(self, change):
         value = change['new']
