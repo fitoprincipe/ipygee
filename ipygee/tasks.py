@@ -406,7 +406,7 @@ class TaskHeader(HBox):
         self.tab.observe(tab_handler, names='selected_index')
 
     # Handlers
-    def on_refresh_all(self, button):
+    def on_refresh_all(self, button=None):
         self.tab.refresh()
 
     def on_update_selected(self, button):
@@ -418,9 +418,10 @@ class TaskHeader(HBox):
 
         def emptyLogger(button=None):
             self.logger.children = []
+            self.on_refresh_all()
 
         # add handlers
-        wid.yes.on_click(emptyLogger)
+        wid.yes.on_click(emptyLogger) # this adds a second handler for yes
         wid.no.on_click(emptyLogger)
         wid.cancel.on_click(emptyLogger)
 
