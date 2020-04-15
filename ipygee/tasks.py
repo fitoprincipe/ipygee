@@ -56,7 +56,7 @@ TEMPLATES['CANCELLED'] = """
 <strong>waiting:</strong> {waiting}
 """
 
-
+# HELPERS
 def now():
     return datetime.now().astimezone(tz.tzlocal())
 
@@ -77,6 +77,18 @@ def get_asset_id(url):
     return assetId
 
 
+def fromisoformat(iso):
+    """ for python versions < 3.7 get datetime from isoformat """
+    d, t = iso.split('T')
+    year, month, day = d.split('-')
+    hours, minutes, seconds = t.split(':')
+    seconds = float(seconds[0:-1])
+    sec = int(seconds)
+    microseconds = int((seconds-sec)*1e6)
+
+    return datetime(int(year), int(month), int(day), int(hours), int(minutes), sec, microseconds)
+
+
 class Task(object):
 
     @staticmethod
@@ -95,7 +107,11 @@ class Task(object):
         if not time:
             return nt(utc=None, local=None, str='')
 
-        utc = datetime.fromisoformat(time)
+        try:
+            utc = datetime.fromisoformat(time)
+        except AttributeError:
+            utc = fromisoformat(time)
+
         utc = utc.replace(tzinfo=tz.tzutc())
         local = utc.astimezone(tz.tzlocal())
         string = local.isoformat()
@@ -406,7 +422,7 @@ class TaskHeader(HBox):
         self.tab.observe(tab_handler, names='selected_index')
 
     # Handlers
-    def on_refresh_all(self, button):
+    def on_refresh_all(self, button=None):
         self.tab.refresh()
 
     def on_update_selected(self, button):
@@ -414,16 +430,16 @@ class TaskHeader(HBox):
 
     def on_cancel_selected(self, button):
         wid = self.tab.cancel_selected()
-        if wid:
-            self.logger.children = [wid]
+        self.logger.children = [wid]
 
-            def emptyLogger(button=None):
-                self.logger.children = []
+        def emptyLogger(button=None):
+            self.logger.children = []
+            self.on_refresh_all()
 
-            # add handlers
-            wid.yes.on_click(emptyLogger)
-            wid.no.on_click(emptyLogger)
-            wid.cancel.on_click(emptyLogger)
+        # add handlers
+        wid.yes.on_click(emptyLogger) # this adds a second handler for yes
+        wid.no.on_click(emptyLogger)
+        wid.cancel.on_click(emptyLogger)
 
     def select_all(self, change):
         value = change['new']

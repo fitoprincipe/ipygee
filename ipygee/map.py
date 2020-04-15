@@ -510,7 +510,10 @@ class Map(ipyleaflet.Map):
                 self.addLayer(img, visParams, name.getInfo(), show, opacity,
                               replace=replace)
                 n += 1
-            except:
+            except ee.EEException as e:
+                msg = 'List.get: List index must be between'
+                if msg not in str(e):
+                    raise e
                 break
 
     def addLayer(self, eeObject, visParams=None, name=None, show=True,
