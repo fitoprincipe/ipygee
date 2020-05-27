@@ -8,7 +8,7 @@ from ipywidgets import Layout, HTML, Accordion
 from traitlets import *
 from collections import OrderedDict
 from .tasks import TaskManager
-from .assets import AssetManager
+# from .assets import AssetManager
 from geetools import tools, utils
 from IPython.display import display
 from .tabs.layers import LayersWidget
@@ -77,14 +77,14 @@ class Map(ipyleaflet.Map):
             task_manager = TaskManager()
 
             # Asset Manager Widget
-            asset_manager = AssetManager(self)
+            # asset_manager = AssetManager(self)
 
             # Layers
             self.layers_widget = LayersWidget(map=self)
 
             widgets = {'Inspector': self.inspector_wid,
                        'Layers': self.layers_widget,
-                       'Assets': asset_manager,
+                       # 'Assets': asset_manager,
                        'Tasks': task_manager,
                        }
             handlers = {'Inspector': self.handle_inspector,

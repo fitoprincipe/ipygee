@@ -68,13 +68,11 @@ class CheckRow(HBox):
 
 
 class CheckAccordion(VBox):
-    # widgets = Tuple()
     widgets = List()
 
-    def __init__(self, widgets, **kwargs):
-        # self.widgets = widgets
+    def __init__(self, **kwargs):
         super(CheckAccordion, self).__init__(**kwargs)
-        self.widgets = widgets
+        self.widgets = kwargs.get('widgets', [])
 
     @observe('widgets')
     def _on_child(self, change):
@@ -90,6 +88,32 @@ class CheckAccordion(VBox):
         newchildren = tuple(newwidgets)
         self.children = newchildren
 
+    # GETTERS
+    def get_title(self, index):
+        """ get the title of the widget at indicated index"""
+        checkrow = self.children[index]
+        acc = checkrow.widget
+        return acc.get_title(0)
+
+    def get_check(self, index):
+        """ get the state of checkbox in index """
+        checkrow = self.children[index]
+        return checkrow.checkbox.value
+
+    def get_widget(self, index):
+        """ get the widget in index """
+        checkrow = self.children[index]
+        return checkrow.widget
+
+    def checked_rows(self):
+        """ return a list of indexes of checked rows """
+        checked = []
+        for i, checkrow in enumerate(self.children):
+            state = checkrow.checkbox.value
+            if state: checked.append(i)
+        return checked
+
+    # SETTERS
     def set_title(self, index, title):
         """ set the title of the widget at indicated index"""
         checkrow = self.children[index]
@@ -102,39 +126,17 @@ class CheckAccordion(VBox):
         for i, title in enumerate(titles):
             self.set_title(i, title)
 
-    def get_title(self, index):
-        """ get the title of the widget at indicated index"""
-        checkrow = self.children[index]
-        acc = checkrow.widget
-        return acc.get_title(0)
-
-    def get_check(self, index):
-        """ get the state of checkbox in index """
-        checkrow = self.children[index]
-        return checkrow.checkbox.value
-
     def set_check(self, index, state):
         """ set the state of checkbox in index """
         checkrow = self.children[index]
         checkrow.checkbox.value = state
 
-    def checked_rows(self):
-        """ return a list of indexes of checked rows """
-        checked = []
-        for i, checkrow in enumerate(self.children):
-            state = checkrow.checkbox.value
-            if state: checked.append(i)
-        return checked
-
-    def get_widget(self, index):
-        """ get the widget in index """
-        checkrow = self.children[index]
-        return checkrow.widget
-
     def set_widget(self, index, widget):
         """ set the widget for index """
         checkrow = self.children[index]
         checkrow.widget.children = (widget,) # Accordion has 1 child
+        # update widgets list
+        self.widgets[index] = widget
 
     def set_row(self, index, title, widget):
         """ set values for the row """
