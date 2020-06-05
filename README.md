@@ -4,9 +4,17 @@ A set of tools and Widgets for working with **Google Earth Engine** in Jupyter n
 
 ## Install
 
-`pip install ipygee`
+> pip install ipygee
 
 *Note: Installation **does not** install Earth Engine Python API. You have to install it before installing `ipygee`, see: https://developers.google.com/earth-engine/python_install*
+
+Be sure notebook extensions are enabled
+
+ipywidgets:
+> jupyter nbextension enable --py widgetsnbextension
+
+ipyleaflet:
+> jupyter nbextension enable --py --sys-prefix ipyleaflet
 
 ## Main Widgets
 
