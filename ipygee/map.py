@@ -487,7 +487,8 @@ class Map(ipyleaflet.Map):
 
     def addImageCollection(self, collection, visParams=None,
                            namePattern='{id}', show=False, opacity=None,
-                           datePattern='yyyyMMdd', replace=True):
+                           datePattern='yyyyMMdd', replace=True,
+                           verbose=False):
         """ Add every Image of an ImageCollection to the Map
 
         :param collection: the ImageCollection
@@ -509,6 +510,8 @@ class Map(ipyleaflet.Map):
                 name = utils.makeName(img, namePattern, datePattern, extra=extra)
                 self.addLayer(img, visParams, name.getInfo(), show, opacity,
                               replace=replace)
+                if verbose:
+                    print('Adding {} to the Map'.format(name))
                 n += 1
             except ee.EEException as e:
                 msg = 'List.get: List index must be between'
