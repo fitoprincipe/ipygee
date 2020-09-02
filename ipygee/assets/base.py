@@ -77,6 +77,16 @@ class Root(HaveChildren, Asset):
     def maxAssetCount(self):
         return self.data['quota']['maxAssetCount']
 
+    def createFolder(self, name):
+        """ Create a folder inside the root """
+        dst = '{}/{}'.format(self.id, name)
+        ee.data.createAsset({'type': ee.data.ASSET_TYPE_FOLDER}, dst)
+
+    def createImageCollection(self, name):
+        """ Create an empty ImageCollection inside the root """
+        dst = '{}/{}'.format(self.id, name)
+        ee.data.createAsset({'type': ee.data.ASSET_TYPE_IMAGE_COLL}, dst)
+
 
 class Folder(HaveChildren, Asset):
     def __init__(self, *args, **kwargs):
@@ -86,6 +96,16 @@ class Folder(HaveChildren, Asset):
     def clear(self):
         super(Folder, self).clear()
         self._children = None
+
+    def createFolder(self, name):
+        """ Create a folder inside the root """
+        dst = '{}/{}'.format(self.id, name)
+        ee.data.createAsset({'type': ee.data.ASSET_TYPE_FOLDER}, dst)
+
+    def createImageCollection(self, name):
+        """ Create an empty ImageCollection inside the root """
+        dst = '{}/{}'.format(self.id, name)
+        ee.data.createAsset({'type': ee.data.ASSET_TYPE_IMAGE_COLL}, dst)
 
 
 class Table(HaveObject, Asset):
