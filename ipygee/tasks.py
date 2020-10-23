@@ -111,6 +111,8 @@ class Task(object):
             utc = datetime.fromisoformat(time)
         except AttributeError:
             utc = fromisoformat(time)
+        except ValueError:
+            utc = fromisoformat(time)
 
         utc = utc.replace(tzinfo=tz.tzutc())
         local = utc.astimezone(tz.tzlocal())
