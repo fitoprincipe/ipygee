@@ -311,6 +311,13 @@ def daterange(info):
           'MultiPoint', 'MultiLineString', 'MultiPolygon')
 def geometry(info):
     """ Dispatch a ee.Geometry """
+    if not info:
+        widget = Accordion()
+        widget.children = [Label('None')]
+        widget.set_title(0, 'coordinates')
+        widget.selected_index = None
+        return widget
+
     coords = info.get('coordinates')
     typee = info.get('type')
     widget = Accordion()
@@ -337,7 +344,7 @@ def geometry(info):
 def feature(info):
     """ Dispatch a ee.Feature """
     geom = info.get('geometry')
-    geomtype = geom.get('type')
+    # geomtype = geom.get('type')
     props = info.get('properties')
 
     # Contruct an accordion with the geometries
@@ -358,8 +365,7 @@ def feature(info):
     acc.selected_index = None
 
     # Geometry Type
-    typewid = dispatch(geomtype)
-
+    # typewid = dispatch(geomtype)
 
     return acc
 
