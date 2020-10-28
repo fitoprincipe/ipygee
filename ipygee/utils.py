@@ -55,7 +55,7 @@ def format_elapsed(seconds):
         return '{}h {}m {}s'.format(int(hours), int(minutes), int(seconds))
     else:
         days = seconds/86400
-        hours = (days-int(days))*60
+        hours = (days-int(days))*24
         minutes = (hours-int(hours))*60
         seconds = (minutes-int(minutes))*60
         return '{}d {}h {}m {}s'.format(int(days), int(hours), 
