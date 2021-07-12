@@ -17,7 +17,7 @@ import traceback
 from .maptools import *
 from .widgets import ErrorAccordion
 from .utils import *
-import re
+import re, sys
 
 
 ZOOM_SCALES = {

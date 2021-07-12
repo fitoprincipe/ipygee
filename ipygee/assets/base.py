@@ -165,6 +165,11 @@ class ImageCollection(HaveObject, HaveChildren, Asset):
             self._size = self.eeObject.size().getInfo()
         return self._size
 
+    @property
+    def sizeBytes(self):
+        sizes = [int(child.sizeBytes) for child in self.children]
+        return sum(sizes)
+
 
 class Image(HaveObject, Asset):
 
@@ -182,7 +187,7 @@ class Image(HaveObject, Asset):
 
     @property
     def sizeBytes(self):
-        return self.data.get('sizeBytes')
+        return int(self.data.get('sizeBytes'))
 
     @property
     def properties(self):
