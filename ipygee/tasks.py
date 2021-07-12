@@ -115,7 +115,10 @@ class Task(object):
             utc = fromisoformat(time)
 
         utc = utc.replace(tzinfo=tz.tzutc())
-        local = utc.astimezone(tz.tzlocal())
+        try:
+            local = utc.astimezone(tz.tzlocal())
+        except OSError:
+            local = utc
         string = local.isoformat()
         return nt(utc=utc, local=local, str=string)
 
