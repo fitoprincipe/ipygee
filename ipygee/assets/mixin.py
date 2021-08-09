@@ -28,7 +28,7 @@ class HaveChildren(object):
             for child in self.children:
                 child.delete(recursive, verbose)
 
-                # self delete
+        # self delete
         if verbose:
             print('Deleting {}'.format(self.name))
 
