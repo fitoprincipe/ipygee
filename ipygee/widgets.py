@@ -3,8 +3,7 @@
 """ Generic Custom Widgets to use in this module """
 
 from ipywidgets import *
-from traitlets import *
-
+from traitlets import Instance, observe, List, Int, Unicode
 
 class CheckRow(HBox):
     checkbox = Instance(Checkbox)
