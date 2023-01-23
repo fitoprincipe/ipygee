@@ -1,11 +1,11 @@
 # coding=utf-8
 
 """ Layers widget for Map tab """
-
+import ee
 from ..widgets import RealBox
 from ipywidgets import *
 from ..threading import Thread
-from traitlets import *
+from traitlets import Float
 from .. import utils
 
 

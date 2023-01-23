@@ -1,24 +1,25 @@
 # coding=utf-8
 
 """ Display an interactive Map for Google Earth Engine using ipyleaflet """
+import re
+import sys
+import traceback
+from collections import OrderedDict
+from copy import copy
 
 import ee
 import ipyleaflet
-from ipywidgets import Layout, HTML, Accordion
-from traitlets import *
-from collections import OrderedDict
-from .tasks import TaskManager
-from .assets import AssetManager
 from geetools import tools, utils
 from IPython.display import display
-from .tabs.layers import LayersWidget
-from copy import copy
-import traceback
-from .maptools import *
-from .widgets import ErrorAccordion
-from .utils import *
-import re
+from ipywidgets import HTML, Accordion, Layout
+from traitlets import Dict, observe
 
+from .assets import AssetManager
+from .maptools import *
+from .tabs.layers import LayersWidget
+from .tasks import TaskManager
+from .utils import *
+from .widgets import ErrorAccordion
 
 ZOOM_SCALES = {
     0: 156543, 1: 78271, 2: 39135, 3: 19567, 4: 9783, 5: 4891, 6: 2445,
