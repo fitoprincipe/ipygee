@@ -1,5 +1,6 @@
 # IDEA IDE
 .idea/
+.vscode/
 
 # any checkpoint
 **/.ipynb_checkpoints
@@ -15,6 +16,5 @@
 # Unit test / coverage reports
 .cache
 
-# Cache
-ipygee/__pycache__/
-ipygee/tabs/__pycache__/
+# Python bytecode caches
+**/__pycache__/
