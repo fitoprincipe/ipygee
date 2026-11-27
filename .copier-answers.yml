@@ -1,0 +1,15 @@
+# Changes here will be overwritten by Copier
+_commit: 0.1.18
+_src_path: gh:12rambau/pypackage
+author_email: fitoprincipe82@gmail.com
+author_first_name: Rodrigo
+author_last_name: Principe
+author_orcid: 0000-0000-0000-0000
+creation_year: "2026"
+github_repo_name: ipygee
+github_user: fitoprincipe
+project_name: ipygee
+project_slug: ipygee
+short_description:
+  "A set of tools for working with Google Earth Engine python API
+  in jupyter notebooks "
