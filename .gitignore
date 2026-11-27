@@ -1,5 +1,6 @@
 # IDEA IDE
 .idea/
+.vscode/
 
 # any checkpoint
 **/.ipynb_checkpoints
