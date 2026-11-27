@@ -1,12 +1,20 @@
-# coding=utf-8
+"""The init file of the package."""
 
-""" A set of tools for working with Google Earth Engine Python API in Jupyter
-notebooks """
+__version__ = "0.0.0"
+__author__ = "Rodrigo Principe"
+__email__ = "fitoprincipe82@gmail.com"
 
-from ._version import __version__
-from .map import Map
-from .assets import AssetManager
-from .tasks import TaskManager
-from . import chart, preview
-from .eprint import eprint, set_eprint_async, getInfo
-from .preview import set_preview_async
+
+class Hello:
+    """Hello world class."""
+
+    msg = "hello world !"
+    "the message to print"
+
+    def hello_world(self) -> str:
+        """Hello world demo method.
+
+        Returns:
+            the hello world string
+        """
+        return self.msg
